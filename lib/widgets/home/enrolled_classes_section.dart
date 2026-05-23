@@ -13,6 +13,7 @@ class EnrolledClassesSection extends StatelessWidget {
   Stream<QuerySnapshot> _stream() {
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) return Stream.empty();
+
     return FirebaseFirestore.instance
         .collection('users')
         .doc(user.uid)
@@ -25,7 +26,7 @@ class EnrolledClassesSection extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Header with "View All"
+        // Header
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
@@ -38,15 +39,48 @@ class EnrolledClassesSection extends StatelessWidget {
             ),
             TextButton(
               onPressed: () => Navigator.pushNamed(
-                  context, AppRoutes.allEnrolledClasses),
-              child: Text('View All',
-                  style: AppTextStyles.caption.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w600)),
+                context,
+                AppRoutes.allEnrolledClasses,
+              ),
+              child: Text(
+                'View All',
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.primary,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
             ),
           ],
         ),
+
         const SizedBox(height: AppSpacing.sm),
 
+        // ───────────── Join Class Button (Always Visible) ─────────────
+        SizedBox(
+          width: double.infinity,
+          height: 50,
+          child: ElevatedButton.icon(
+            icon: const Icon(Icons.add_circle_outline, size: 20),
+            label: const Text(
+              'Join Class',
+              style: TextStyle(fontWeight: FontWeight.w600),
+            ),
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primary,
+              foregroundColor: AppColors.surface,
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(14),
+              ),
+            ),
+            onPressed: () {
+              Navigator.pushNamed(context, AppRoutes.joinClass);
+            },
+          ),
+        ),
+
+        const SizedBox(height: AppSpacing.lg),
+
+        // ───────────── Classes Stream ─────────────
         StreamBuilder<QuerySnapshot>(
           stream: _stream(),
           builder: (context, snapshot) {
@@ -54,7 +88,9 @@ class EnrolledClassesSection extends StatelessWidget {
               return const Center(
                 child: Padding(
                   padding: EdgeInsets.all(AppSpacing.lg),
-                  child: CircularProgressIndicator(color: AppColors.primary),
+                  child: CircularProgressIndicator(
+                    color: AppColors.primary,
+                  ),
                 ),
               );
             }
@@ -66,7 +102,11 @@ class EnrolledClassesSection extends StatelessWidget {
             return Column(
               children: snapshot.data!.docs.map((doc) {
                 final data = doc.data() as Map<String, dynamic>;
-                return _EnrolledClassCard(data: data, docId: doc.id);
+
+                return _EnrolledClassCard(
+                  data: data,
+                  docId: doc.id,
+                );
               }).toList(),
             );
           },
@@ -86,7 +126,9 @@ class _EmptyClassesState extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider.withOpacity(0.6)),
+        border: Border.all(
+          color: AppColors.divider.withOpacity(0.6),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -110,7 +152,9 @@ class _EmptyClassesState extends StatelessWidget {
               color: AppColors.primary.withOpacity(0.5),
             ),
           ),
+
           const SizedBox(height: AppSpacing.lg),
+
           Text(
             'No enrolled classes yet.',
             style: AppTextStyles.heading3.copyWith(
@@ -119,7 +163,9 @@ class _EmptyClassesState extends StatelessWidget {
             ),
             textAlign: TextAlign.center,
           ),
+
           const SizedBox(height: AppSpacing.sm),
+
           Text(
             'Your academic journey is a blank canvas. Join your first class to start learning with AI.',
             style: AppTextStyles.body.copyWith(
@@ -127,28 +173,6 @@ class _EmptyClassesState extends StatelessWidget {
               height: 1.5,
             ),
             textAlign: TextAlign.center,
-          ),
-          const SizedBox(height: AppSpacing.lg),
-          SizedBox(
-            width: double.infinity,
-            height: 52,
-            child: ElevatedButton.icon(
-              icon: const Icon(Icons.add_circle_outline, size: 20),
-              label: const Text(
-                'Join a Class',
-                style: TextStyle(fontWeight: FontWeight.w600),
-              ),
-              style: ElevatedButton.styleFrom(
-                backgroundColor: AppColors.primary,
-                foregroundColor: AppColors.surface,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(14),
-                ),
-              ),
-              onPressed: () {
-                Navigator.pushNamed(context, AppRoutes.joinClass);
-              },
-            ),
           ),
         ],
       ),
@@ -168,14 +192,20 @@ class _EnrolledClassCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final className = data['name'] ?? data['className'] ?? 'Untitled Class';
-    final profName = data['teacherName'] ?? 'Unknown Professor';
+    final className =
+        data['name'] ?? data['className'] ?? 'Untitled Class';
+
+    final profName =
+        data['teacherName'] ?? 'Unknown Professor';
+
     final profImage = data['teacherImage'] as String?;
 
-    // ---------- Correct date extraction ----------
     final joinedAt = data['joinedAt'] ?? data['createdAt'];
+
     final joinDate = joinedAt is Timestamp
-        ? '${joinedAt.toDate().day} ${_monthName(joinedAt.toDate().month)} ${joinedAt.toDate().year}'
+        ? '${joinedAt.toDate().day} '
+        '${_monthName(joinedAt.toDate().month)} '
+        '${joinedAt.toDate().year}'
         : 'Unknown date';
 
     return Container(
@@ -184,7 +214,9 @@ class _EnrolledClassCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: AppColors.surface,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: AppColors.divider.withOpacity(0.5)),
+        border: Border.all(
+          color: AppColors.divider.withOpacity(0.5),
+        ),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -193,16 +225,19 @@ class _EnrolledClassCard extends StatelessWidget {
           ),
         ],
       ),
+
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Status & delete row
+          // Status & Delete
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
               Container(
-                padding:
-                const EdgeInsets.symmetric(horizontal: 10, vertical: 5),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 10,
+                  vertical: 5,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.1),
                   borderRadius: BorderRadius.circular(8),
@@ -217,19 +252,23 @@ class _EnrolledClassCard extends StatelessWidget {
                   ),
                 ),
               ),
+
               GestureDetector(
-                onTap: () => _confirmDelete(context, docId, className),
+                onTap: () =>
+                    _confirmDelete(context, docId, className),
                 child: Icon(
                   Icons.delete_outline_rounded,
                   size: 20,
-                  color: AppColors.textSecondary.withOpacity(0.6),
+                  color:
+                  AppColors.textSecondary.withOpacity(0.6),
                 ),
               ),
             ],
           ),
+
           const SizedBox(height: AppSpacing.md),
 
-          // Class name
+          // Class Name
           Text(
             className,
             style: AppTextStyles.heading2.copyWith(
@@ -239,23 +278,35 @@ class _EnrolledClassCard extends StatelessWidget {
             ),
           ),
 
-          // ---- AFTER Text(className, ...) ----
           const SizedBox(height: AppSpacing.sm),
-          if ((data['description'] ?? '').toString().isNotEmpty)
+
+          // Description
+          if ((data['description'] ?? '')
+              .toString()
+              .isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              padding:
+              const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Text(
                 data['description'],
-                style: AppTextStyles.caption.copyWith(color: AppColors.textSecondary),
+                style: AppTextStyles.caption.copyWith(
+                  color: AppColors.textSecondary,
+                ),
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
               ),
             ),
+
+          // Subject
           if ((data['subject'] ?? '').toString().isNotEmpty)
             Padding(
-              padding: const EdgeInsets.only(bottom: AppSpacing.xs),
+              padding:
+              const EdgeInsets.only(bottom: AppSpacing.xs),
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 2),
+                padding: const EdgeInsets.symmetric(
+                  horizontal: 6,
+                  vertical: 2,
+                ),
                 decoration: BoxDecoration(
                   color: AppColors.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(4),
@@ -263,39 +314,47 @@ class _EnrolledClassCard extends StatelessWidget {
                 child: Text(
                   data['subject'],
                   style: AppTextStyles.caption.copyWith(
-                      color: AppColors.primary, fontWeight: FontWeight.w600, fontSize: 11),
+                    color: AppColors.primary,
+                    fontWeight: FontWeight.w600,
+                    fontSize: 11,
+                  ),
                 ),
               ),
             ),
-          const SizedBox(height: AppSpacing.sm),
-          // ---- End inserted block ----
 
-          // Professor info
+          const SizedBox(height: AppSpacing.sm),
+
+          // Professor Info
           Row(
             children: [
               CircleAvatar(
                 radius: 16,
-                backgroundColor: AppColors.primary.withOpacity(0.1),
+                backgroundColor:
+                AppColors.primary.withOpacity(0.1),
                 backgroundImage:
                 profImage != null && profImage.isNotEmpty
-                    ? NetworkImage(profImage!)
+                    ? NetworkImage(profImage)
                     : null,
                 child: profImage == null || profImage.isEmpty
                     ? Text(
                   profName.isNotEmpty
                       ? profName[0].toUpperCase()
                       : '?',
-                  style: AppTextStyles.caption.copyWith(
+                  style:
+                  AppTextStyles.caption.copyWith(
                     color: AppColors.primary,
                     fontWeight: FontWeight.w700,
                   ),
                 )
                     : null,
               ),
+
               const SizedBox(width: AppSpacing.sm),
+
               Expanded(
                 child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
+                  crossAxisAlignment:
+                  CrossAxisAlignment.start,
                   children: [
                     Text(
                       profName,
@@ -306,7 +365,8 @@ class _EnrolledClassCard extends StatelessWidget {
                     ),
                     Text(
                       'Joined $joinDate',
-                      style: AppTextStyles.caption.copyWith(
+                      style:
+                      AppTextStyles.caption.copyWith(
                         color: AppColors.textSecondary,
                       ),
                     ),
@@ -315,9 +375,10 @@ class _EnrolledClassCard extends StatelessWidget {
               ),
             ],
           ),
+
           const SizedBox(height: AppSpacing.md),
 
-          // Open Class button
+          // Open Class Button
           SizedBox(
             width: double.infinity,
             height: 44,
@@ -333,20 +394,27 @@ class _EnrolledClassCard extends StatelessWidget {
                       'code': data['code'] ?? '',
                       'teacherName': profName,
                       'teacherId': data['teacherId'] ?? '',
-                      'description': data['description'] ?? '',
-                      'lessonCount': data['lessonCount'] ?? 0,
-                      'studentCount': data['studentCount'] ?? 0,
+                      'description':
+                      data['description'] ?? '',
+                      'lessonCount':
+                      data['lessonCount'] ?? 0,
+                      'studentCount':
+                      data['studentCount'] ?? 0,
                     },
                   },
                 );
               },
               style: OutlinedButton.styleFrom(
                 foregroundColor: AppColors.primary,
-                side: const BorderSide(color: AppColors.primary),
+                side: const BorderSide(
+                  color: AppColors.primary,
+                ),
                 shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12)),
-                textStyle: AppTextStyles.body
-                    .copyWith(fontWeight: FontWeight.w600),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                textStyle: AppTextStyles.body.copyWith(
+                  fontWeight: FontWeight.w600,
+                ),
               ),
               child: const Text('Open Class'),
             ),
@@ -357,14 +425,20 @@ class _EnrolledClassCard extends StatelessWidget {
   }
 
   void _confirmDelete(
-      BuildContext context, String docId, String className) {
+      BuildContext context,
+      String docId,
+      String className,
+      ) {
     showDialog(
       context: context,
       builder: (ctx) => AlertDialog(
-        shape:
-        RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20),
+        ),
         title: const Text('Remove Class'),
-        content: Text('Are you sure you want to remove "$className"?'),
+        content: Text(
+          'Are you sure you want to remove "$className"?',
+        ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
@@ -378,12 +452,18 @@ class _EnrolledClassCard extends StatelessWidget {
                   .collection('enrolledClasses')
                   .doc(docId)
                   .delete();
+
               Navigator.pop(ctx);
+
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Class removed')),
+                const SnackBar(
+                  content: Text('Class removed'),
+                ),
               );
             },
-            style: FilledButton.styleFrom(backgroundColor: Colors.red),
+            style: FilledButton.styleFrom(
+              backgroundColor: Colors.red,
+            ),
             child: const Text('Remove'),
           ),
         ],
@@ -393,9 +473,20 @@ class _EnrolledClassCard extends StatelessWidget {
 
   String _monthName(int month) {
     const months = [
-      'Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun',
-      'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'May',
+      'Jun',
+      'Jul',
+      'Aug',
+      'Sep',
+      'Oct',
+      'Nov',
+      'Dec'
     ];
+
     return months[month - 1];
   }
 }

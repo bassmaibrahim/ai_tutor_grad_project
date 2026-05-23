@@ -1,10 +1,13 @@
 // lib/screens/student_screens/saved_study_detail_screen.dart
+
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
+
 import '../../constants/app_colors.dart';
 import '../../constants/app_spacing.dart';
 import '../../constants/app_typography.dart';
 import '../../constants/app_routes.dart';
+
 import '../../widgets/ai/content_card.dart';
 import '../../widgets/ai/section_header.dart';
 import '../../widgets/ai/video_recommendations.dart';
@@ -17,20 +20,25 @@ class SavedStudyDetailScreen extends StatefulWidget {
       _SavedStudyDetailScreenState();
 }
 
-class _SavedStudyDetailScreenState extends State<SavedStudyDetailScreen> {
+class _SavedStudyDetailScreenState
+    extends State<SavedStudyDetailScreen> {
   final TextEditingController _quizCountController =
   TextEditingController(text: "5");
+
   final TextEditingController _videoCountController =
   TextEditingController(text: "4");
 
-  // These fields are initialised in didChangeDependencies
   late Map<String, dynamic> data;
+
   String title = '';
   String detectedTopic = '';
   int wordCount = 0;
+
   String explanation = '';
   String summaryText = '';
+
   List<String> keyPoints = [];
+
   List<Map<String, dynamic>> qaPairs = [];
   List<Map<String, dynamic>> videos = [];
 
@@ -43,44 +51,101 @@ class _SavedStudyDetailScreenState extends State<SavedStudyDetailScreen> {
     if (_initialized) return;
     _initialized = true;
 
-    final args = ModalRoute.of(context)!.settings.arguments
+    final args =
+    ModalRoute.of(context)!.settings.arguments
     as Map<String, dynamic>;
+
     data = args['data'] as Map<String, dynamic>;
 
-    // ---- Safe extraction of summary & explanation ----
+    // ---------------- BASIC INFO ----------------
+
+    title = (data['title'] ?? 'Untitled Study').toString();
+
+    detectedTopic =
+        (data['detected_topic'] ?? '').toString();
+
+    wordCount = data['word_count'] is int
+        ? data['word_count']
+        : int.tryParse(
+        data['word_count']?.toString() ?? '0') ??
+        0;
+
+    explanation =
+        (data['explanation'] ?? '').toString();
+
+    // ---------------- SUMMARY ----------------
+
     final summaryRaw = data['summary'];
-    explanation = (data['explanation'] ?? '').toString();
 
     if (summaryRaw is Map) {
-      summaryText = (summaryRaw['summary'] ?? '').toString();
-      if (summaryRaw.containsKey('explanation')) {
-        explanation = summaryRaw['explanation'].toString();
+      // summary text
+      summaryText =
+          (summaryRaw['summary'] ?? '').toString();
+
+      // explanation fallback
+      if (explanation.isEmpty &&
+          summaryRaw['explanation'] != null) {
+        explanation =
+            summaryRaw['explanation'].toString();
       }
+
+      // key points
       final rawKP = summaryRaw['key_points'];
-      keyPoints = rawKP is List ? List<String>.from(rawKP) : [];
+
+      if (rawKP is List) {
+        keyPoints = rawKP
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
     } else if (summaryRaw is String) {
       summaryText = summaryRaw;
-      keyPoints = [];
-    } else {
-      summaryText = '';
-      keyPoints = [];
+
+      // fallback root-level key_points
+      final rawKP = data['key_points'];
+
+      if (rawKP is List) {
+        keyPoints = rawKP
+            .map((e) => e.toString().trim())
+            .where((e) => e.isNotEmpty)
+            .toList();
+      }
     }
 
-    title = data['title'] ?? 'Untitled Study';
-    detectedTopic = data['detected_topic'] ?? '';
-    wordCount = data['word_count'] ?? 0;
+    // ---------------- QA ----------------
 
-    final qa = data['qa'] ?? {};
-    final rawQaPairs = qa['qa_pairs'];
-    qaPairs = rawQaPairs is List
-        ? List<Map<String, dynamic>>.from(rawQaPairs)
-        : [];
+    final qa = data['qa'];
 
-    final youtube = data['youtube'] ?? {};
-    final rawVideos = youtube['videos'];
-    videos = rawVideos is List
-        ? List<Map<String, dynamic>>.from(rawVideos)
-        : [];
+    if (qa is Map<String, dynamic>) {
+      final rawQaPairs = qa['qa_pairs'];
+
+      if (rawQaPairs is List) {
+        qaPairs = rawQaPairs
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+
+    // ---------------- VIDEOS ----------------
+
+    final youtube = data['youtube'];
+
+    if (youtube is Map<String, dynamic>) {
+      final rawVideos = youtube['videos'];
+
+      if (rawVideos is List) {
+        videos = rawVideos
+            .whereType<Map>()
+            .map((e) => Map<String, dynamic>.from(e))
+            .toList();
+      }
+    }
+
+    // ---------------- DEBUG ----------------
+
+    debugPrint('SUMMARY RAW: $summaryRaw');
+    debugPrint('KEY POINTS: $keyPoints');
   }
 
   @override
@@ -94,70 +159,103 @@ class _SavedStudyDetailScreenState extends State<SavedStudyDetailScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: AppColors.scaffoldBackground,
+
       appBar: AppBar(
         backgroundColor: AppColors.surface,
         elevation: 0,
+
         leading: IconButton(
-          icon: const Icon(Icons.arrow_back, color: AppColors.primary),
+          icon: const Icon(
+            Icons.arrow_back,
+            color: AppColors.primary,
+          ),
           onPressed: () => Navigator.pop(context),
         ),
+
         title: Text(
           title,
-          style: AppTextStyles.heading3.copyWith(color: AppColors.primary),
+          style: AppTextStyles.heading3.copyWith(
+            color: AppColors.primary,
+          ),
           overflow: TextOverflow.ellipsis,
         ),
+
         centerTitle: true,
+
         actions: [
           IconButton(
-            icon: const Icon(Icons.home_outlined, color: AppColors.primary),
-            onPressed: () => Navigator.pushNamedAndRemoveUntil(
-              context,
-              AppRoutes.studentHome,
-                  (route) => false,
+            icon: const Icon(
+              Icons.home_outlined,
+              color: AppColors.primary,
             ),
+            onPressed: () {
+              Navigator.pushNamedAndRemoveUntil(
+                context,
+                AppRoutes.studentHome,
+                    (route) => false,
+              );
+            },
           ),
         ],
       ),
+
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(AppSpacing.md),
+
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
+
           children: [
-            // Topic & word count chips
-            Wrap(spacing: AppSpacing.sm, children: [
-              if (detectedTopic.isNotEmpty)
-                _InfoChip(
-                  icon: Icons.topic_rounded,
-                  label: detectedTopic,
-                  color: AppColors.softPurple,
-                ),
-              if (wordCount > 0)
-                _InfoChip(
-                  icon: Icons.text_fields_rounded,
-                  label: '$wordCount words',
-                  color: AppColors.softBlue,
-                ),
-            ]),
+            // ---------------- CHIPS ----------------
+
+            Wrap(
+              spacing: AppSpacing.sm,
+              children: [
+                if (detectedTopic.isNotEmpty)
+                  _InfoChip(
+                    icon: Icons.topic_rounded,
+                    label: detectedTopic,
+                    color: AppColors.softPurple,
+                  ),
+
+                if (wordCount > 0)
+                  _InfoChip(
+                    icon: Icons.text_fields_rounded,
+                    label: '$wordCount words',
+                    color: AppColors.softBlue,
+                  ),
+              ],
+            ),
+
             const SizedBox(height: AppSpacing.md),
 
-            // Explanation
+            // ---------------- EXPLANATION ----------------
+
             SectionHeader(
               title: 'Explanation',
               icon: Icons.lightbulb_outline_rounded,
+
               onListen: explanation.isNotEmpty
-                  ? () => Navigator.pushNamed(
-                context,
-                AppRoutes.listen,
-                arguments: {'text': explanation},
-              )
+                  ? () {
+                Navigator.pushNamed(
+                  context,
+                  AppRoutes.listen,
+                  arguments: {
+                    'text': explanation,
+                  },
+                );
+              }
                   : null,
             ),
+
             const SizedBox(height: AppSpacing.sm),
+
             ContentCard(
               child: Text(
                 explanation.isNotEmpty
                     ? explanation
                     : 'No explanation available.',
+
                 style: AppTextStyles.body.copyWith(
                   color: explanation.isNotEmpty
                       ? AppColors.textPrimary
@@ -166,177 +264,288 @@ class _SavedStudyDetailScreenState extends State<SavedStudyDetailScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: AppSpacing.lg),
 
-            // Summary
-            if (summaryText.isNotEmpty) ...[
+            // ---------------- SUMMARY ----------------
+
+            if (summaryText.trim().isNotEmpty) ...[
               SectionHeader(
                 title: 'Summary',
                 icon: Icons.summarize_rounded,
-                onListen: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.listen,
-                  arguments: {'text': summaryText},
-                ),
+
+                onListen: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.listen,
+                    arguments: {
+                      'text': summaryText,
+                    },
+                  );
+                },
               ),
+
               const SizedBox(height: AppSpacing.sm),
+
               ContentCard(
                 child: Text(
                   summaryText,
+
                   style: AppTextStyles.body.copyWith(
                     color: AppColors.textPrimary,
                     height: 1.6,
                   ),
                 ),
               ),
+
               const SizedBox(height: AppSpacing.lg),
             ],
 
-            // Key Points
+            // ---------------- KEY POINTS ----------------
+
             if (keyPoints.isNotEmpty) ...[
               SectionHeader(
                 title: 'Key Points',
                 icon: Icons.star_rounded,
-                onListen: () => Navigator.pushNamed(
-                  context,
-                  AppRoutes.listen,
-                  arguments: {'text': keyPoints.join('. ')},
-                ),
+
+                onListen: () {
+                  Navigator.pushNamed(
+                    context,
+                    AppRoutes.listen,
+                    arguments: {
+                      'text': keyPoints.join('. '),
+                    },
+                  );
+                },
               ),
+
               const SizedBox(height: AppSpacing.sm),
-              ...keyPoints.map(
-                    (point) => Padding(
-                  padding: const EdgeInsets.only(bottom: AppSpacing.sm),
-                  child: ContentCard(
-                    child: Row(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Container(
-                          width: 28,
-                          height: 28,
-                          decoration: BoxDecoration(
-                            color: AppColors.primary.withOpacity(0.1),
-                            borderRadius: BorderRadius.circular(8),
-                          ),
-                          child: Center(
-                            child: Text(
-                              '${keyPoints.indexOf(point) + 1}',
-                              style: AppTextStyles.caption.copyWith(
-                                color: AppColors.primary,
-                                fontWeight: FontWeight.w700,
+
+              ...List.generate(
+                keyPoints.length,
+                    (index) {
+                  final point = keyPoints[index];
+
+                  return Padding(
+                    padding: const EdgeInsets.only(
+                      bottom: AppSpacing.sm,
+                    ),
+
+                    child: ContentCard(
+                      child: Row(
+                        crossAxisAlignment:
+                        CrossAxisAlignment.start,
+
+                        children: [
+                          Container(
+                            width: 28,
+                            height: 28,
+
+                            decoration: BoxDecoration(
+                              color: AppColors.primary
+                                  .withOpacity(0.1),
+
+                              borderRadius:
+                              BorderRadius.circular(8),
+                            ),
+
+                            child: Center(
+                              child: Text(
+                                '${index + 1}',
+
+                                style: AppTextStyles.caption
+                                    .copyWith(
+                                  color: AppColors.primary,
+                                  fontWeight:
+                                  FontWeight.w700,
+                                ),
                               ),
                             ),
                           ),
-                        ),
-                        const SizedBox(width: AppSpacing.md),
-                        Expanded(
-                          child: Text(
-                            point,
-                            style: AppTextStyles.body.copyWith(
-                              color: AppColors.textPrimary,
-                              height: 1.5,
+
+                          const SizedBox(
+                            width: AppSpacing.md,
+                          ),
+
+                          Expanded(
+                            child: Text(
+                              point,
+
+                              style:
+                              AppTextStyles.body.copyWith(
+                                color:
+                                AppColors.textPrimary,
+                                height: 1.5,
+                              ),
                             ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                ),
+                  );
+                },
               ),
+
               const SizedBox(height: AppSpacing.lg),
             ],
 
-            // Quiz & Videos
+            // ---------------- QUIZ ----------------
+
             SectionHeader(
               title: 'Quiz & Videos',
               icon: Icons.tune_rounded,
             ),
+
             const SizedBox(height: AppSpacing.sm),
+
             ContentCard(
-              child: Column(children: [
-                Row(children: [
-                  const Icon(Icons.quiz_outlined, color: AppColors.primary, size: 20),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text('Questions',
-                        style: AppTextStyles.body.copyWith(
-                            fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
+              child: Column(
+                children: [
+                  Row(
+                    children: [
+                      const Icon(
+                        Icons.quiz_outlined,
+                        color: AppColors.primary,
+                        size: 20,
+                      ),
+
+                      const SizedBox(
+                        width: AppSpacing.sm,
+                      ),
+
+                      Expanded(
+                        child: Text(
+                          'Questions',
+
+                          style:
+                          AppTextStyles.body.copyWith(
+                            fontWeight: FontWeight.w600,
+                            color:
+                            AppColors.textPrimary,
+                          ),
+                        ),
+                      ),
+
+                      SizedBox(
+                        width: 60,
+
+                        child: TextField(
+                          controller:
+                          _quizCountController,
+
+                          keyboardType:
+                          TextInputType.number,
+
+                          textAlign: TextAlign.center,
+
+                          decoration:
+                          const InputDecoration(
+                            border:
+                            OutlineInputBorder(),
+                            isDense: true,
+                            contentPadding:
+                            EdgeInsets.symmetric(
+                              horizontal: 8,
+                              vertical: 10,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
+
+                  const SizedBox(height: AppSpacing.md),
+
                   SizedBox(
-                    width: 60,
-                    child: TextField(
-                      controller: _quizCountController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(), isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
-                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
+                    width: double.infinity,
+
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.quiz),
+
+                      label: const Text('Start Quiz'),
+
+                      style:
+                      ElevatedButton.styleFrom(
+                        backgroundColor:
+                        AppColors.primary,
+
+                        foregroundColor:
+                        AppColors.surface,
+
+                        shape:
+                        RoundedRectangleBorder(
+                          borderRadius:
+                          BorderRadius.circular(
+                            12,
+                          ),
+                        ),
+                      ),
+
+                      onPressed: qaPairs.isEmpty
+                          ? null
+                          : () {
+                        final count =
+                            int.tryParse(
+                              _quizCountController
+                                  .text,
+                            ) ??
+                                5;
+
+                        Navigator.pushNamed(
+                          context,
+                          AppRoutes.flipQuiz,
+                          arguments: {
+                            'questionCount':
+                            count,
+                            'qaPairs': qaPairs,
+                          },
+                        );
+                      },
                     ),
                   ),
-                ]),
-                const SizedBox(height: AppSpacing.sm),
-                Row(children: [
-                  const Icon(Icons.play_circle_outline, color: AppColors.primary, size: 20),
-                  const SizedBox(width: AppSpacing.sm),
-                  Expanded(
-                    child: Text('Videos',
-                        style: AppTextStyles.body.copyWith(
-                            fontWeight: FontWeight.w600, color: AppColors.textPrimary)),
-                  ),
-                  SizedBox(
-                    width: 60,
-                    child: TextField(
-                      controller: _videoCountController,
-                      keyboardType: TextInputType.number,
-                      textAlign: TextAlign.center,
-                      decoration: const InputDecoration(
-                          border: OutlineInputBorder(), isDense: true,
-                          contentPadding: EdgeInsets.symmetric(horizontal: 8, vertical: 10)),
-                      style: AppTextStyles.body.copyWith(fontWeight: FontWeight.w700),
-                    ),
-                  ),
-                ]),
-                const SizedBox(height: AppSpacing.md),
-                SizedBox(
-                  width: double.infinity,
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.quiz, size: 18),
-                    label: const Text('Start Quiz'),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: AppColors.primary,
-                      foregroundColor: AppColors.surface,
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                    ),
-                    onPressed: qaPairs.isEmpty
-                        ? null
-                        : () {
-                      final count = int.tryParse(_quizCountController.text) ?? 5;
-                      Navigator.pushNamed(
-                        context,
-                        AppRoutes.flipQuiz,
-                        arguments: {'questionCount': count, 'qaPairs': qaPairs},
-                      );
-                    },
-                  ),
-                ),
-              ]),
+                ],
+              ),
             ),
+
             const SizedBox(height: AppSpacing.lg),
 
-            // Videos
+            // ---------------- VIDEOS ----------------
+
             SectionHeader(
               title: 'Recommended Videos',
-              icon: Icons.play_circle_outline_rounded,
+              icon:
+              Icons.play_circle_outline_rounded,
             ),
+
             const SizedBox(height: AppSpacing.sm),
+
             videos.isNotEmpty
                 ? VideoRecommendations(
-                videos: videos.take(int.tryParse(_videoCountController.text) ?? 4).toList())
+              videos: videos
+                  .take(
+                int.tryParse(
+                  _videoCountController
+                      .text,
+                ) ??
+                    4,
+              )
+                  .toList(),
+            )
                 : const Padding(
-              padding: EdgeInsets.symmetric(vertical: AppSpacing.lg),
-              child: Center(child: Text('No videos found for this content.', style: TextStyle(color: Colors.grey))),
+              padding: EdgeInsets.symmetric(
+                vertical: AppSpacing.lg,
+              ),
+
+              child: Center(
+                child: Text(
+                  'No videos found for this content.',
+
+                  style:
+                  TextStyle(color: Colors.grey),
+                ),
+              ),
             ),
+
             const SizedBox(height: AppSpacing.xxl),
           ],
         ),
@@ -349,17 +558,48 @@ class _InfoChip extends StatelessWidget {
   final IconData icon;
   final String label;
   final Color color;
-  const _InfoChip({required this.icon, required this.label, required this.color});
+
+  const _InfoChip({
+    required this.icon,
+    required this.label,
+    required this.color,
+  });
+
   @override
   Widget build(BuildContext context) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: AppSpacing.md, vertical: AppSpacing.xs),
-      decoration: BoxDecoration(color: color, borderRadius: BorderRadius.circular(20)),
-      child: Row(mainAxisSize: MainAxisSize.min, children: [
-        Icon(icon, size: 14, color: AppColors.primary),
-        const SizedBox(width: 4),
-        Text(label, style: AppTextStyles.caption.copyWith(color: AppColors.primary, fontWeight: FontWeight.w600)),
-      ]),
+      padding: const EdgeInsets.symmetric(
+        horizontal: AppSpacing.md,
+        vertical: AppSpacing.xs,
+      ),
+
+      decoration: BoxDecoration(
+        color: color,
+        borderRadius: BorderRadius.circular(20),
+      ),
+
+      child: Row(
+        mainAxisSize: MainAxisSize.min,
+
+        children: [
+          Icon(
+            icon,
+            size: 14,
+            color: AppColors.primary,
+          ),
+
+          const SizedBox(width: 4),
+
+          Text(
+            label,
+
+            style: AppTextStyles.caption.copyWith(
+              color: AppColors.primary,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

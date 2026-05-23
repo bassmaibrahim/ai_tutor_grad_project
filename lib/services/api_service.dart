@@ -5,7 +5,7 @@ import 'package:http/http.dart' as http;
 
 class ApiService {
   static const String baseUrl =
-      'https://backup-grad-llm-production.up.railway.app';
+      'https://backup-grad-llm-production-2c8c.up.railway.app';
 
   /// Process a document (PDF, image, or text) and return AI-generated results.
   static Future<Map<String, dynamic>> processDocument({
