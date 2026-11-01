@@ -152,7 +152,7 @@ For evaluation purposes, pre-created accounts will be provided:
 ## Project Demo
 
 A full video demonstration of the project will be provided here:
-👉 **[[Demo Video Link Will Be Added Here](https://drive.google.com/file/d/1U7IUc2pBrQEiiB6pTkV0sJoymvl6noZR/view?usp=drive_link)]**
+👉 **[[Demo Video Link Will Be Added Here](https://drive.google.com/file/d/1CTW2vA_a3LyQrHkKPPUQi1Yc6qozEdto/view?usp=sharing)]**
 
 ---
 
